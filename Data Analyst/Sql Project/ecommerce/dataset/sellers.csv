@@ -1,0 +1,121 @@
+seller_id,seller_name,city,province,join_date
+1,Toko 001,Surabaya,Jawa Timur,2021-10-08
+2,Toko 002,Malang,Jawa Timur,2021-02-14
+3,Toko 003,Makassar,Sulawesi Selatan,2022-07-18
+4,Toko 004,Surabaya,Jawa Timur,2021-10-06
+5,Toko 005,Jakarta Selatan,DKI Jakarta,2020-09-24
+6,Toko 006,Depok,Jawa Barat,2022-06-15
+7,Toko 007,Malang,Jawa Timur,2021-07-31
+8,Toko 008,Depok,Jawa Barat,2021-01-25
+9,Toko 009,Tangerang,Banten,2021-10-11
+10,Toko 010,Bandung,Jawa Barat,2022-09-26
+11,Toko 011,Jakarta Timur,DKI Jakarta,2022-10-07
+12,Toko 012,Bandung,Jawa Barat,2021-09-08
+13,Toko 013,Makassar,Sulawesi Selatan,2022-11-11
+14,Toko 014,Yogyakarta,DI Yogyakarta,2022-11-19
+15,Toko 015,Surabaya,Jawa Timur,2020-08-25
+16,Toko 016,Bekasi,Jawa Barat,2021-08-26
+17,Toko 017,Denpasar,Bali,2021-10-16
+18,Toko 018,Makassar,Sulawesi Selatan,2022-09-06
+19,Toko 019,Bogor,Jawa Barat,2021-01-17
+20,Toko 020,Tangerang,Banten,2021-09-14
+21,Toko 021,Denpasar,Bali,2022-05-25
+22,Toko 022,Bekasi,Jawa Barat,2021-02-15
+23,Toko 023,Depok,Jawa Barat,2022-05-10
+24,Toko 024,Surabaya,Jawa Timur,2021-09-21
+25,Toko 025,Semarang,Jawa Tengah,2021-08-02
+26,Toko 026,Tangerang,Banten,2022-04-04
+27,Toko 027,Surabaya,Jawa Timur,2020-10-31
+28,Toko 028,Bandung,Jawa Barat,2021-03-30
+29,Toko 029,Depok,Jawa Barat,2022-03-26
+30,Toko 030,Yogyakarta,DI Yogyakarta,2022-07-19
+31,Toko 031,Jakarta Selatan,DKI Jakarta,2022-02-19
+32,Toko 032,Depok,Jawa Barat,2021-10-24
+33,Toko 033,Jakarta Selatan,DKI Jakarta,2021-08-10
+34,Toko 034,Medan,Sumatera Utara,2021-12-19
+35,Toko 035,Jakarta Barat,DKI Jakarta,2022-10-29
+36,Toko 036,Jakarta Barat,DKI Jakarta,2021-04-23
+37,Toko 037,Medan,Sumatera Utara,2022-01-07
+38,Toko 038,Jakarta Barat,DKI Jakarta,2022-02-14
+39,Toko 039,Yogyakarta,DI Yogyakarta,2021-08-06
+40,Toko 040,Bogor,Jawa Barat,2020-12-06
+41,Toko 041,Medan,Sumatera Utara,2022-11-28
+42,Toko 042,Jakarta Timur,DKI Jakarta,2020-08-19
+43,Toko 043,Jakarta Barat,DKI Jakarta,2021-05-26
+44,Toko 044,Bandung,Jawa Barat,2021-08-14
+45,Toko 045,Denpasar,Bali,2022-10-19
+46,Toko 046,Medan,Sumatera Utara,2021-03-24
+47,Toko 047,Bekasi,Jawa Barat,2021-03-16
+48,Toko 048,Bandung,Jawa Barat,2021-08-02
+49,Toko 049,Jakarta Timur,DKI Jakarta,2021-01-04
+50,Toko 050,Bandung,Jawa Barat,2020-12-03
+51,Toko 051,Bandung,Jawa Barat,2020-12-03
+52,Toko 052,Makassar,Sulawesi Selatan,2022-02-21
+53,Toko 053,Jakarta Selatan,DKI Jakarta,2021-04-26
+54,Toko 054,Makassar,Sulawesi Selatan,2022-10-14
+55,Toko 055,Jakarta Selatan,DKI Jakarta,2021-08-01
+56,Toko 056,Medan,Sumatera Utara,2022-07-29
+57,Toko 057,Semarang,Jawa Tengah,2022-03-10
+58,Toko 058,Jakarta Barat,DKI Jakarta,2021-04-23
+59,Toko 059,Medan,Sumatera Utara,2021-11-28
+60,Toko 060,Bekasi,Jawa Barat,2020-11-11
+61,Toko 061,Makassar,Sulawesi Selatan,2022-09-18
+62,Toko 062,Tangerang,Banten,2020-08-09
+63,Toko 063,Balikpapan,Kalimantan Timur,2021-03-27
+64,Toko 064,Medan,Sumatera Utara,2021-11-23
+65,Toko 065,Bandung,Jawa Barat,2022-11-11
+66,Toko 066,Semarang,Jawa Tengah,2022-10-27
+67,Toko 067,Yogyakarta,DI Yogyakarta,2021-12-08
+68,Toko 068,Depok,Jawa Barat,2021-07-22
+69,Toko 069,Surabaya,Jawa Timur,2021-09-18
+70,Toko 070,Bandung,Jawa Barat,2022-03-19
+71,Toko 071,Yogyakarta,DI Yogyakarta,2021-05-16
+72,Toko 072,Depok,Jawa Barat,2021-06-16
+73,Toko 073,Jakarta Selatan,DKI Jakarta,2022-02-07
+74,Toko 074,Balikpapan,Kalimantan Timur,2022-02-22
+75,Toko 075,Makassar,Sulawesi Selatan,2021-11-12
+76,Toko 076,Bekasi,Jawa Barat,2021-02-24
+77,Toko 077,Jakarta Barat,DKI Jakarta,2021-07-09
+78,Toko 078,Tangerang,Banten,2022-08-14
+79,Toko 079,Bandung,Jawa Barat,2020-09-20
+80,Toko 080,Malang,Jawa Timur,2022-06-10
+81,Toko 081,Medan,Sumatera Utara,2021-04-27
+82,Toko 082,Bekasi,Jawa Barat,2022-11-18
+83,Toko 083,Bekasi,Jawa Barat,2022-04-25
+84,Toko 084,Jakarta Selatan,DKI Jakarta,2021-07-29
+85,Toko 085,Depok,Jawa Barat,2020-11-25
+86,Toko 086,Malang,Jawa Timur,2021-07-31
+87,Toko 087,Jakarta Timur,DKI Jakarta,2022-10-16
+88,Toko 088,Balikpapan,Kalimantan Timur,2020-08-23
+89,Toko 089,Tangerang,Banten,2022-04-10
+90,Toko 090,Bandung,Jawa Barat,2022-01-19
+91,Toko 091,Surabaya,Jawa Timur,2022-08-30
+92,Toko 092,Bogor,Jawa Barat,2021-04-06
+93,Toko 093,Bogor,Jawa Barat,2021-11-09
+94,Toko 094,Surabaya,Jawa Timur,2022-05-25
+95,Toko 095,Jakarta Barat,DKI Jakarta,2021-05-27
+96,Toko 096,Bandung,Jawa Barat,2022-06-15
+97,Toko 097,Jakarta Timur,DKI Jakarta,2021-08-28
+98,Toko 098,Jakarta Timur,DKI Jakarta,2021-05-04
+99,Toko 099,Yogyakarta,DI Yogyakarta,2020-12-27
+100,Toko 100,Balikpapan,Kalimantan Timur,2021-04-07
+101,Toko 101,Yogyakarta,DI Yogyakarta,2021-07-27
+102,Toko 102,Balikpapan,Kalimantan Timur,2022-11-03
+103,Toko 103,Surabaya,Jawa Timur,2022-05-14
+104,Toko 104,Bekasi,Jawa Barat,2021-07-18
+105,Toko 105,Makassar,Sulawesi Selatan,2021-08-23
+106,Toko 106,Jakarta Selatan,DKI Jakarta,2021-08-25
+107,Toko 107,Jakarta Barat,DKI Jakarta,2021-03-03
+108,Toko 108,Denpasar,Bali,2020-10-06
+109,Toko 109,Yogyakarta,DI Yogyakarta,2021-09-21
+110,Toko 110,Denpasar,Bali,2022-08-07
+111,Toko 111,Jakarta Barat,DKI Jakarta,2021-11-13
+112,Toko 112,Tangerang,Banten,2022-04-27
+113,Toko 113,Bandung,Jawa Barat,2021-08-29
+114,Toko 114,Depok,Jawa Barat,2021-07-07
+115,Toko 115,Makassar,Sulawesi Selatan,2021-08-13
+116,Toko 116,Semarang,Jawa Tengah,2021-07-14
+117,Toko 117,Yogyakarta,DI Yogyakarta,2022-03-07
+118,Toko 118,Makassar,Sulawesi Selatan,2022-07-02
+119,Toko 119,Makassar,Sulawesi Selatan,2020-11-19
+120,Toko 120,Jakarta Selatan,DKI Jakarta,2021-12-18
