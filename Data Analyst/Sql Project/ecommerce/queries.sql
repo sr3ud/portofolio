@@ -1,4 +1,4 @@
---01 | CEK INTEGRITAS DATA
+-- 1 | CEK INTEGRITAS DATA
 --Apakah datanya layak dianalisis? Sebelum menghitung apa pun, pastikan tabel saling konsisten.
 
 WITH total_item AS (
@@ -38,7 +38,7 @@ SELECT cek, pelanggaran,
        CASE WHEN pelanggaran = 0 THEN 'OK' ELSE 'PERIKSA' END AS status
 FROM hasil;
 
--- 02 | TREN PENJUALAN BULANAN
+-- 2 | TREN PENJUALAN BULANAN
 -- Bagaimana pertumbuhan penjualan per bulan, dan apakah ada pola musiman (Nov-Des)?
 
 WITH bulanan AS (
@@ -62,7 +62,7 @@ SELECT bulan,
 FROM bulanan
 ORDER BY bulan;
 
--- 03 | KONSENTRASI SELLER (PARETO / ABC)
+-- 3 | KONSENTRASI SELLER (PARETO / ABC)
 -- Berapa persen seller yang menghasilkan 80% penjualan? Seberapa bergantung platform pada segelintir seller?
 -- Kelas A = seller yang, diurutkan dari terbesar, masih dibutuhkan untuk mencapai 80% GMV kumulatif; B = sampai 95%; C = sisanya.
 
@@ -95,7 +95,7 @@ FROM berkelas
 GROUP BY kelas
 ORDER BY kelas;
 
--- 04 | KINERJA KATEGORI DAN TINGKAT RETUR
+-- 4 | KINERJA KATEGORI DAN TINGKAT RETUR
 -- Kategori mana yang paling besar penjualannya, dan kategori mana yang paling sering diretur?
 -- Tingkat retur = baris item berstatus 'returned' / semua baris item yang diproses (delivered + returned); batal dikeluarkan.
 
@@ -122,7 +122,7 @@ SELECT category_name,
 FROM kategori
 ORDER BY gmv DESC;
 
--- 05 | RETENSI KOHORT BULANAN
+-- 5 | RETENSI KOHORT BULANAN
 -- Dari pelanggan yang daftar di bulan tertentu, berapa persen yang masih berbelanja 1, 2, ... 6 bulan kemudian?
 -- Kohort = bulan daftar. M0 = bulan daftar itu sendiri. Pesanan batal tidak dihitung.
 -- Sel dikosongkan (NULL) jika bulan tersebut belum terjadi dalam data (data berakhir 2024-12).
@@ -163,7 +163,7 @@ LEFT JOIN aktif a ON a.cohort_bulan = u.cohort_bulan
 GROUP BY u.cohort_bulan, u.pelanggan, u.bulan_tersedia
 ORDER BY u.cohort_bulan;
 
--- 06 | PEMBELIAN ULANG PER KANAL AKUISISI
+-- 6 | PEMBELIAN ULANG PER KANAL AKUISISI
 -- Channel akuisisi mana yang menghasilkan pelanggan yang kembali belanja, dan seberapa cepat?
 -- Repeat 90 hari = pelanggan yang order ke-2 (bukan batal) terjadi <= 90 hari setelah order pertama.
 -- Hanya pelanggan dengan order pertama sebelum 2024-10-02, supaya semua punya jendela 90 hari penuh (data berakhir 2024-12-31).
@@ -207,7 +207,7 @@ LEFT JOIN median m ON m.kanal = j.kanal
 GROUP BY j.kanal, m.median_hari
 ORDER BY repeat_90_pct DESC;
 
--- 07 | SEGMENTASI RFM
+-- 7 | SEGMENTASI RFM
 -- Bagaimana pelanggan terbagi menurut update, frekuensi, dan nilai belanja, dan segmen mana yang paling bernilai?
 -- Hanya pesanan 'delivered'. Tanggal acuan 2025-01-01 (sehari setelah data berakhir).
 -- R = NTILE(5) atas recency (skor 5 = paling baru); customer_id ditambahkan sebagai pembeda urutan agar hasil identik di setiap engine. F = batas tetap (1, 2, 3-4, 5-7, 8+): NTILE tidak cocok untuk frekuensi
@@ -250,7 +250,7 @@ FROM segmen
 GROUP BY segmen
 ORDER BY segmen;
 
--- 08 | KETERLAMBATAN DAN SKOR REVIEW
+-- 8 | KETERLAMBATAN DAN SKOR REVIEW
 -- Seberapa besar keterlambatan pengiriman menurunkan kepuasan pelanggan?
 -- Keterlambatan = tanggal tiba - tanggal estimasi, dalam hari kalender (negatif = lebih cepat dari estimasi).
 -- Hanya pesanan 'delivered' yang punya review (retur dikeluarkan karena skornya dipengaruhi alasan lain).
@@ -283,7 +283,7 @@ FROM bucket
 GROUP BY urut, kelompok
 ORDER BY urut;
 
--- 09 | PENGIRIMAN DALAM PROVINSI VS ANTARPROVINSI
+-- 9 | PENGIRIMAN DALAM PROVINSI VS ANTARPROVINSI
 -- Seberapa lebih lama dan lebih sering terlambat pengiriman antarprovinsi, dan apakah ongkir dan kepuasannya berbeda?
 -- Satu pesanan = satu seller, tetapi tabel order_items punya banyak baris per pesanan, maka dibuat dulu satu baris per (order, seller)
 -- dengan ongkir yang sudah dijumlahkan, supaya pesanan tidak terhitung berkali-kali.
