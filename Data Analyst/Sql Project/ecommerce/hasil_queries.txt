@@ -1,0 +1,414 @@
+-- 1 | CEK INTEGRITAS DATA
+
+WITH total_item AS (
+    SELECT order_id, SUM(unit_price * quantity + freight_value) AS nilai_item
+    FROM order_items
+    GROUP BY order_id
+),
+total_bayar AS (
+    SELECT order_id, SUM(payment_value) AS nilai_bayar
+    FROM payments
+    GROUP BY order_id
+),
+hasil AS (
+    SELECT 'Pesanan tanpa item' AS cek, COUNT(*) AS pelanggaran
+    FROM orders o LEFT JOIN order_items oi ON oi.order_id = o.order_id
+    WHERE oi.order_id IS NULL
+    UNION ALL
+    SELECT 'Total pembayaran <> total item + ongkir', COUNT(*)
+    FROM total_item ti JOIN total_bayar tb ON tb.order_id = ti.order_id
+    WHERE tb.nilai_bayar <> ti.nilai_item
+    UNION ALL
+    SELECT 'Tiba sebelum dikirim', COUNT(*)
+    FROM orders WHERE order_delivered_ts < order_shipped_ts
+    UNION ALL
+    SELECT 'Pesanan batal tetapi punya tanggal tiba', COUNT(*)
+    FROM orders WHERE order_status = 'canceled' AND order_delivered_ts IS NOT NULL
+    UNION ALL
+    SELECT 'Review untuk pesanan batal', COUNT(*)
+    F[...]
+
+cek	pelanggaran	status	
+Pesanan tanpa item	0	OK	
+Total pembayaran <> total item + ongkir	0	OK	
+Tiba sebelum dikirim	0	OK	
+Pesanan batal tetapi punya tanggal tiba	0	OK	
+Review untuk pesanan batal	0	OK	
+Pesanan sebelum tanggal daftar pelanggan	0	OK	
+
+-- 2 | TREN PENJUALAN BULANAN
+WITH bulanan AS (
+    SELECT DATE_FORMAT(o.order_purchase_ts, '%Y-%m') AS bulan,
+           COUNT(DISTINCT o.order_id)                AS pesanan,
+           SUM(oi.unit_price * oi.quantity)          AS gmv
+    FROM orders o
+    JOIN order_items oi ON oi.order_id = o.order_id
+    WHERE o.order_status = 'delivered'
+    GROUP BY DATE_FORMAT(o.order_purchase_ts, '%Y-%m')
+)
+SELECT bulan,
+       pesanan,
+       gmv,
+       ROUND(gmv * 1.0 / pesanan, 0)                                          AS aov,
+       ROUND(100.0 * (gmv - LAG(gmv)     OVER (ORDER BY bulan))
+                    / LAG(gmv)     OVER (ORDER BY bulan), 1)                  AS mom_pct,
+       ROUND(100.0 * (gmv - LAG(gmv, 12) OVER (ORDER BY bulan))
+                    / LAG(gmv, 12) OVER (ORDER BY bulan), 1)                  AS yoy_pct,
+       SUM(gmv) OVER (PARTITION BY SUBSTR(bulan, 1, 4) ORDER BY bulan)        AS gmv_kumulatif_tahun
+FROM bulanan
+ORDER BY bulan;
+
+
+bulan	pesanan	gmv	aov	mom_pct	yoy_pct	gmv_kumulatif_tahun	
+2023-01	100	53853000.00	538530	NULL	NULL	53853000.00	
+2023-02	150	147136000.00	980907	173.2	NULL	200989000.00	
+2023-03	236	171085000.00	724936	16.3	NULL	372074000.00	
+2023-04	315	243009000.00	771457	42.0	NULL	615083000.00	
+2023-05	363	299646000.00	825471	23.3	NULL	914729000.00	
+2023-06	434	362978000.00	836355	21.1	NULL	1277707000.00	
+2023-07	531	414715000.00	781008	14.3	NULL	1692422000.00	
+2023-08	568	401555000.00	706963	-3.2	NULL	2093977000.00	
+2023-09	660	448756000.00	679933	11.8	NULL	2542733000.00	
+2023-10	748	673285000.00	900114	50.0	NULL	3216018000.00	
+2023-11	844	684366000.00	810860	1.6	NULL	3900384000.00	
+2023-12	936	747694000.00	798818	9.3	NULL	4648078000.00	
+2024-01	837	617852000.00	738174	-17.4	1047.3	617852000.00	
+2024-02	765	569081000.00	743897	-7.9	286.8	1186933000.00	
+2024-03	940	698133000.00	742695	22.7	308.1	1885066000.00	
+2024-04	974	821456000.00	843384	17.7	238.0	2706522000.00	
+2024-05	1094	885006000.00	808963	7.7	195.4	3591528000.00	
+2024-06	1056	876925000.00	830421	-0.9	141.6	4468453000.00	
+2024-07	1216	973864000.00	800875	11.1	134.8	5442317000.00	
+2024-08	1287	985773000.00	765946	1.2	145.5	6428090000.00	
+2024-09	1224	996403000.00	814055	1.1	122.0	7424493000.00	
+2024-10	1423	1047201000.00	735911	5.1	55.5	8471694000.00	
+2024-11	1548	1202496000.00	776806	14.8	75.7	9674190000.00	
+2024-12	1643	1196650000.00	728332	-0.5	60.0	10870840000.00	
+
+-- 3 | KONSENTRASI SELLER (PARETO / ABC)
+
+WITH gmv_seller AS (
+    SELECT oi.seller_id, SUM(oi.unit_price * oi.quantity) AS gmv
+    FROM order_items oi
+    JOIN orders o ON o.order_id = oi.order_id
+    WHERE o.order_status = 'delivered'
+    GROUP BY oi.seller_id
+),
+berurut AS (
+    SELECT seller_id, gmv,
+           SUM(gmv) OVER (ORDER BY gmv DESC, seller_id) AS gmv_kumulatif,
+           SUM(gmv) OVER ()                             AS gmv_total
+    FROM gmv_seller
+),
+berkelas AS (
+    SELECT seller_id, gmv, gmv_total,
+           CASE WHEN 100.0 * (gmv_kumulatif - gmv) / gmv_total < 80 THEN 'A'
+                WHEN 100.0 * (gmv_kumulatif - gmv) / gmv_total < 95 THEN 'B'
+                ELSE 'C' END AS kelas
+    FROM berurut
+)
+SELECT kelas,
+       COUNT(*)                                          AS jumlah_seller,
+       ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (), 1) AS pct_seller,
+       SUM(gmv)                                          AS gmv,
+       ROUND(100.0 * SUM(gmv) / MAX(gmv_total), 1)      [...]
+
+kelas	jumlah_seller	pct_seller	gmv	pct_gmv	
+A	29	24.2	12461758000.00	80.3	
+B	42	35.0	2291746000.00	14.8	
+C	49	40.8	765414000.00	4.9	
+
+-- 4 | KINERJA KATEGORI DAN TINGKAT RETUR
+
+WITH kategori AS (
+    SELECT c.category_name,
+           SUM(CASE WHEN o.order_status = 'delivered' THEN oi.unit_price * oi.quantity ELSE 0 END) AS gmv,
+           SUM(CASE WHEN o.order_status = 'delivered' THEN oi.quantity ELSE 0 END)                 AS unit_terjual,
+           COUNT(*)                                                                                AS baris_diproses,
+           SUM(CASE WHEN o.order_status = 'returned' THEN 1 ELSE 0 END)                            AS baris_retur
+    FROM order_items oi
+    JOIN orders     o ON o.order_id    = oi.order_id
+    JOIN products   p ON p.product_id  = oi.product_id
+    JOIN categories c ON c.category_id = p.category_id
+    WHERE o.order_status IN ('delivered', 'returned')
+    GROUP BY c.category_id, c.category_name
+)
+SELECT category_name,
+       gmv,
+       ROUND(100.0 * gmv / SUM(gmv) OVER (), 1)               AS pct_gmv,
+       RANK() OVER (ORDER BY gmv DESC)                        AS peringkat_gmv,
+      [...]
+
+category_name	gmv	pct_gmv	peringkat_gmv	unit_terjual	retur_pct	peringkat_retur	
+Komputer & Laptop	6024371000.00	38.8	1	1301	4.8	4	
+Elektronik	1892387000.00	12.2	2	1567	4.3	6	
+Handphone & Aksesori	1676555000.00	10.8	3	2191	4.5	5	
+Otomotif	1332609000.00	8.6	4	3440	3.0	12	
+Kecantikan	1072059000.00	6.9	5	7683	4.3	7	
+Olahraga	764313000.00	4.9	6	2719	4.2	8	
+Kesehatan	698335000.00	4.5	7	6612	2.0	15	
+Rumah Tangga	628216000.00	4.0	8	2544	4.0	9	
+Fashion Wanita	344155000.00	2.2	9	1631	10.9	1	
+Fashion Pria	264584000.00	1.7	10	1332	9.3	2	
+Peralatan Dapur	264207000.00	1.7	11	1526	4.0	10	
+Makanan & Minuman	210358000.00	1.4	12	2262	2.4	14	
+Mainan & Hobi	175187000.00	1.1	13	1215	5.1	3	
+Ibu & Bayi	118397000.00	0.8	14	900	2.6	13	
+Buku & Alat Tulis	53185000.00	0.3	15	702	3.6	11	
+
+-- 5 | RETENSI KOHORT BULANAN
+
+WITH kohort AS (
+    SELECT customer_id, signup_date, DATE_FORMAT(signup_date, '%Y-%m') AS cohort_bulan
+    FROM customers
+),
+ukuran AS (
+    SELECT cohort_bulan,
+           COUNT(*) AS pelanggan,
+           (2024 - YEAR(MIN(signup_date))) * 12 + (12 - MONTH(MIN(signup_date))) AS bulan_tersedia
+    FROM kohort
+    GROUP BY cohort_bulan
+),
+aktif AS (
+    SELECT k.cohort_bulan,
+           (YEAR(o.order_purchase_ts) - YEAR(k.signup_date)) * 12
+             + MONTH(o.order_purchase_ts) - MONTH(k.signup_date) AS m,
+           COUNT(DISTINCT k.customer_id) AS aktif
+    FROM kohort k
+    JOIN orders o ON o.customer_id = k.customer_id
+    WHERE o.order_status <> 'canceled'
+    GROUP BY k.cohort_bulan,
+             (YEAR(o.order_purchase_ts) - YEAR(k.signup_date)) * 12
+               + MONTH(o.order_purchase_ts) - MONTH(k.signup_date)
+)
+SELECT u.cohort_bulan, u.pelanggan,
+       CASE WHEN u.bulan_tersedia >= 0 THEN ROUND(100.0 * COALESCE(SUM(CASE WHEN a.m = 0 THEN a.akti[...]
+
+cohort_bulan	pelanggan	m0	m1	m2	m3	m4	m5	m6	
+2023-01	146	62.3	27.4	32.2	27.4	21.9	18.5	24.7	
+2023-02	161	60.2	32.9	29.2	26.1	19.9	20.5	21.1	
+2023-03	173	57.8	36.4	26.6	30.6	27.2	22.5	21.4	
+2023-04	190	63.2	35.8	29.5	27.4	25.3	25.3	22.6	
+2023-05	192	65.1	31.8	33.3	32.3	25.0	25.0	25.0	
+2023-06	222	64.0	34.2	26.1	25.7	23.9	20.3	25.7	
+2023-07	218	68.8	36.7	29.8	27.1	33.5	30.7	21.6	
+2023-08	221	60.6	42.1	31.2	31.2	26.7	19.0	18.6	
+2023-09	219	66.7	38.4	33.8	34.7	26.9	16.4	17.8	
+2023-10	251	75.7	33.9	32.7	24.7	28.3	25.5	23.1	
+2023-11	230	72.6	43.5	29.1	22.2	23.0	24.3	21.3	
+2023-12	226	71.7	35.0	27.9	24.8	30.5	25.2	20.8	
+2024-01	264	59.8	29.5	26.9	22.0	25.0	18.9	25.4	
+2024-02	261	60.5	33.3	28.4	28.7	25.7	26.8	21.8	
+2024-03	285	63.2	37.9	26.0	28.1	28.4	25.3	22.1	
+2024-04	256	64.8	37.5	25.4	22.7	29.7	23.0	19.5	
+2024-05	307	64.2	32.6	30.6	28.7	26.4	24.4	21.5	
+2024-06	286	66.8	39.5	28.0	26.9	30.4	27.3	23.4	
+2024-07	284	66.2	38.4	26.4	29.9	30.6	32.0	NULL	
+2024-08	313	66.8	35.5	30.0	26.5	29.4	NULL	NULL	
+2024-09	313	66.1	36.4	35.1	35.5	NULL	NULL	NULL	
+2024-10	339	69.6	34.8	29.8	NULL	NULL	NULL	NULL	
+2024-11	322	74.8	43.8	NULL	NULL	NULL	NULL	NULL	
+2024-12	321	77.9	NULL	NULL	NULL	NULL	NULL	NULL	
+
+-- 6 | PEMBELIAN ULANG PER KANAL AKUISISI
+
+WITH urut AS (
+    SELECT customer_id, order_purchase_ts,
+           ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_purchase_ts, order_id) AS n
+    FROM orders
+    WHERE order_status <> 'canceled'
+),
+jarak AS (
+    SELECT c.acquisition_channel AS kanal,
+           c.customer_id,
+           DATEDIFF(k.order_purchase_ts, p.order_purchase_ts) AS hari_ke_order2
+    FROM customers c
+    JOIN urut p ON p.customer_id = c.customer_id AND p.n = 1
+    LEFT JOIN urut k ON k.customer_id = c.customer_id AND k.n = 2
+    WHERE p.order_purchase_ts < '2024-10-02'
+),
+berurut AS (
+    SELECT kanal, hari_ke_order2,
+           ROW_NUMBER() OVER (PARTITION BY kanal ORDER BY hari_ke_order2) AS rn,
+           COUNT(*)     OVER (PARTITION BY kanal)                         AS cnt
+    FROM jarak
+    WHERE hari_ke_order2 <= 90
+),
+median AS (
+    SELECT kanal, AVG(hari_ke_order2) AS median_hari
+    FROM berurut
+    WHERE rn IN (FLOOR((cnt + 1) / 2), CEIL((cnt + 1) / 2))
+    GR[...]
+
+kanal	pelanggan	repeat_90_hari	repeat_90_pct	median_hari_ke_order2	
+referral	768	627	81.6	26.0000	
+organic	1790	1220	68.2	28.0000	
+marketplace	639	402	62.9	32.0000	
+ads	1319	715	54.2	30.0000	
+
+-- 7 | SEGMENTASI RFM
+
+WITH rfm AS (
+    SELECT o.customer_id,
+           DATEDIFF('2025-01-01', MAX(o.order_purchase_ts)) AS recency_hari,
+           COUNT(DISTINCT o.order_id)                       AS frekuensi,
+           SUM(oi.unit_price * oi.quantity)                 AS monetari
+    FROM orders o
+    JOIN order_items oi ON oi.order_id = o.order_id
+    WHERE o.order_status = 'delivered'
+    GROUP BY o.customer_id
+),
+skor AS (
+    SELECT customer_id, recency_hari, frekuensi, monetari,
+           NTILE(5) OVER (ORDER BY recency_hari DESC, customer_id) AS r,
+           CASE WHEN frekuensi >= 8 THEN 5 WHEN frekuensi >= 5 THEN 4
+                WHEN frekuensi >= 3 THEN 3 WHEN frekuensi = 2 THEN 2 ELSE 1 END AS f
+    FROM rfm
+),
+segmen AS (
+    SELECT customer_id, monetari,
+           CASE WHEN r >= 4 AND f >= 4 THEN '1. Champions'
+                WHEN r >= 3 AND f >= 3 THEN '2. Loyal'
+                WHEN r >= 4 AND f <= 2 THEN '3. Promising'
+                WHEN r  = 3 AND f <= 2 THEN [...]
+
+segmen	pelanggan	pct_pelanggan	rata_rata_belanja	pct_total_belanja	
+1. Champions	776	14.3	6219644	31.1	
+2. Loyal	1204	22.1	3542120	27.5	
+3. Promising	851	15.7	1005604	5.5	
+4. Need Attention	430	7.9	1098000	3.0	
+5. At Risk	982	18.1	3887094	24.6	
+6. Hibernating	1193	21.9	1075211	8.3
+
+-- 8 | KETERLAMBATAN DAN SKOR REVIEW
+
+WITH ulasan AS (
+    SELECT r.review_score,
+           DATEDIFF(o.order_delivered_ts, o.estimated_delivery_date) AS terlambat_hari
+    FROM reviews r
+    JOIN orders o ON o.order_id = r.order_id
+    WHERE o.order_status = 'delivered'
+),
+bucket AS (
+    SELECT review_score,
+           CASE WHEN terlambat_hari <= 0 THEN 1
+                WHEN terlambat_hari <= 2 THEN 2
+                WHEN terlambat_hari <= 5 THEN 3
+                ELSE 4 END AS urut,
+           CASE WHEN terlambat_hari <= 0 THEN 'Tepat waktu / lebih cepat'
+                WHEN terlambat_hari <= 2 THEN 'Terlambat 1-2 hari'
+                WHEN terlambat_hari <= 5 THEN 'Terlambat 3-5 hari'
+                ELSE 'Terlambat 6+ hari' END AS kelompok
+    FROM ulasan
+)
+SELECT kelompok,
+       COUNT(*)                                                     AS jumlah_review,
+       ROUND(AVG(review_score), 2)                                  AS rata_rata_skor,
+       ROUND(100.0 * SUM(CASE WHEN review_score <= [...]
+
+kelompok	jumlah_review	rata_rata_skor	pct_skor_1_2	
+Tepat waktu / lebih cepat	10801	4.46	0.2	
+Terlambat 1-2 hari	2685	4.09	1.0	
+Terlambat 3-5 hari	980	3.36	13.7	
+Terlambat 6+ hari	434	2.17	63.8	
+
+
+-- 9 | PENGIRIMAN DALAM PROVINSI VS ANTARPROVINSI
+
+WITH pasangan AS (
+    SELECT order_id, seller_id, SUM(freight_value) AS ongkir
+    FROM order_items
+    GROUP BY order_id, seller_id
+),
+rute AS (
+    SELECT o.order_id,
+           CASE WHEN cu.province = s.province THEN 'Dalam provinsi' ELSE 'Antarprovinsi' END AS jenis_rute,
+           DATEDIFF(o.order_delivered_ts, o.order_purchase_ts)       AS hari_kirim,
+           DATEDIFF(o.order_delivered_ts, o.estimated_delivery_date) AS terlambat_hari,
+           p.ongkir
+    FROM orders o
+    JOIN pasangan  p  ON p.order_id    = o.order_id
+    JOIN customers cu ON cu.customer_id = o.customer_id
+    JOIN sellers   s  ON s.seller_id    = p.seller_id
+    WHERE o.order_status = 'delivered'
+)
+SELECT r.jenis_rute,
+       COUNT(*)                                                         AS pesanan,
+       ROUND(AVG(r.hari_kirim), 2)                                      AS rata_rata_hari_kirim,
+       ROUND(100.0 * SUM(CASE WHEN r.terlambat_hari > 0 THEN 1 ELSE 0 END) / COUNT(*), [...]
+
+jenis_rute	pesanan	rata_rata_hari_kirim	pct_terlambat	rata_rata_ongkir	rata_rata_skor_review	
+Dalam provinsi	2884	4.51	21.5	27187	4.28	
+Antarprovinsi	17008	6.70	28.6	41817	4.25	
+
+-- 10 | 3 PRODUK TERLARIS PER KATEGORI
+
+WITH produk AS (
+    SELECT c.category_name, p.product_name,
+           SUM(oi.unit_price * oi.quantity) AS gmv,
+           SUM(oi.quantity)                 AS unit_terjual
+    FROM order_items oi
+    JOIN orders     o ON o.order_id    = oi.order_id
+    JOIN products   p ON p.product_id  = oi.product_id
+    JOIN categories c ON c.category_id = p.category_id
+    WHERE o.order_status = 'delivered'
+    GROUP BY c.category_id, c.category_name, p.product_id, p.product_name
+),
+berperingkat AS (
+    SELECT category_name, product_name, gmv, unit_terjual,
+           ROW_NUMBER() OVER (PARTITION BY category_name ORDER BY gmv DESC, product_name) AS peringkat,
+           SUM(gmv)     OVER (PARTITION BY category_name)                                 AS gmv_kategori
+    FROM produk
+)
+SELECT category_name, peringkat, product_name, gmv, unit_terjual,
+       ROUND(100.0 * gmv / gmv_kategori, 1) AS pct_dari_kategori
+FROM berperingkat
+WHERE peringkat <= 3
+ORDER BY category_name, peri[...]
+
+category_name	peringkat	product_name	gmv	unit_terjual	pct_dari_kategori	
+Buku & Alat Tulis	1	Buku & Alat Tulis #634	3306000.00	38	6.2	
+Buku & Alat Tulis	2	Buku & Alat Tulis #876	3213000.00	27	6.0	
+Buku & Alat Tulis	3	Buku & Alat Tulis #234	3000000.00	24	5.6	
+Elektronik	1	Elektronik #348	121680000.00	45	6.4	
+Elektronik	2	Elektronik #345	119288000.00	52	6.3	
+Elektronik	3	Elektronik #346	105369000.00	31	5.6	
+Fashion Pria	1	Fashion Pria #719	27145000.00	61	10.3	
+Fashion Pria	2	Fashion Pria #456	24087000.00	37	9.1	
+Fashion Pria	3	Fashion Pria #718	20640000.00	43	7.8	
+Fashion Wanita	1	Fashion Wanita #222	17204000.00	68	5.0	
+Fashion Wanita	2	Fashion Wanita #223	16500000.00	60	4.8	
+Fashion Wanita	3	Fashion Wanita #484	14104000.00	41	4.1	
+Handphone & Aksesori	1	Handphone & Aksesori #158	138985000.00	77	8.3	
+Handphone & Aksesori	2	Handphone & Aksesori #169	122910000.00	85	7.3	
+Handphone & Aksesori	3	Handphone & Aksesori #745	83072000.00	44	5.0	
+Ibu & Bayi	1	Ibu & Bayi #583	11316000.00	41	9.6	
+Ibu & Bayi	2	Ibu & Bayi #576	6720000.00	30	5.7	
+Ibu & Bayi	3	Ibu & Bayi #229	6552000.00	28	5.5	
+Kecantikan	1	Kecantikan #287	59714000.00	146	5.6	
+Kecantikan	2	Kecantikan #314	47880000.00	168	4.5	
+Kecantikan	3	Kecantikan #284	45402000.00	161	4.2	
+Kesehatan	1	Kesehatan #687	30134000.00	61	4.3	
+Kesehatan	2	Kesehatan #31	24570000.00	130	3.5	
+Kesehatan	3	Kesehatan #28	23010000.00	130	3.3	
+Komputer & Laptop	1	Komputer & Laptop #830	507250000.00	50	8.4	
+Komputer & Laptop	2	Komputer & Laptop #837	312336000.00	54	5.2	
+Komputer & Laptop	3	Komputer & Laptop #607	308016000.00	24	5.1	
+Mainan & Hobi	1	Mainan & Hobi #132	13718000.00	38	7.8	
+Mainan & Hobi	2	Mainan & Hobi #812	10368000.00	54	5.9	
+Mainan & Hobi	3	Mainan & Hobi #473	9802000.00	58	5.6	
+Makanan & Minuman	1	Makanan & Minuman #60	30690000.00	90	14.6	
+Makanan & Minuman	2	Makanan & Minuman #44	12728000.00	86	6.1	
+Makanan & Minuman	3	Makanan & Minuman #61	12728000.00	86	6.1	
+Olahraga	1	Olahraga #720	51084000.00	54	6.7	
+Olahraga	2	Olahraga #168	41300000.00	100	5.4	
+Olahraga	3	Olahraga #149	34194000.00	82	4.5	
+Otomotif	1	Otomotif #48	128904000.00	82	9.7	
+Otomotif	2	Otomotif #52	70140000.00	84	5.3	
+Otomotif	3	Otomotif #62	57967000.00	91	4.3	
+Peralatan Dapur	1	Peralatan Dapur #211	18620000.00	76	7.0	
+Peralatan Dapur	2	Peralatan Dapur #263	15656000.00	38	5.9	
+Peralatan Dapur	3	Peralatan Dapur #889	12312000.00	38	4.7	
+Rumah Tangga	1	Rumah Tangga #152	34776000.00	84	5.5	
+Rumah Tangga	2	Rumah Tangga #165	33012000.00	84	5.3	
+Rumah Tangga	3	Rumah Tangga #180	27744000.00	68	4.4	
